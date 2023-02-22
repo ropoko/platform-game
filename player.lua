@@ -1,7 +1,9 @@
+local Utils = require('utils')
+local World = require('world')
 
 local Player = {
 	world = {},
-	x = 300,
+	x = 100,
 	y = 150,
 	width = 50,
 	height = 50,
@@ -28,6 +30,7 @@ end
 
 function Player:update(dt)
 	self.x, self.y = self.body:getPosition()
+	-- print(World.instance:getJointCount())
 end
 
 function Player:draw()
@@ -46,39 +49,56 @@ function love.mousepressed(x,y,btn)
 			y = y
 		}
 
+		if Player.rope ~= nil and Player.rope.body ~= nil then
+			Player.rope.body:destroy()
+		end
+
 		Player:draw_line(Player.x, Player.y)
+	end
+
+	if btn == 2 and Player.rope ~= nil and Player.rope.body ~= nil then
+		-- for k,joint in pairs(World.instance:getJoints()) do
+		-- 	joint:destroy()
+		-- end
+
+		Player.rope.body:destroy()
+		Player.rope = nil
 	end
 end
 
 function Player:draw_line(x,y)
-	-- remove this and check collision
-	if math.ceil(x) == math.ceil(destiny_rope.x) and math.ceil(y) == math.ceil(destiny_rope.y) then
-		love.physics.newRopeJoint(self.body, self.world.roof.body, x, y, destiny_rope.x, destiny_rope.y, 50, true)
-		return
+	for _,body in pairs(World:get_bodies_position()) do
+		if Utils:has_collision(x,y,1,1,body.x/2, body.y-body.h/2, body.w, body.h) then
+			if self.rope.body == nil then
+				self.rope.body = love.physics.newRopeJoint(self.body, body.body, self.x, self.y, x, y, 100, true)
+			end
+			love.graphics.line(self.rope.body:getAnchors())
+			return
+		else
+			if y > destiny_rope.y then
+				y = y - self.shoot_speed
+			end
+
+			if y < destiny_rope.y then
+				y = y + self.shoot_speed
+			end
+
+			if x > destiny_rope.x then
+				x = x - self.shoot_speed
+			end
+
+			if x < destiny_rope.x then
+				x = x + self.shoot_speed
+			end
+
+			self.rope = {
+				x = x,
+				y = y
+			}
+
+			love.graphics.line(Player.x, Player.y, self.rope.x,self.rope.y)
+		end
 	end
-
-	if x > destiny_rope.x then
-		x = x - self.shoot_speed
-	end
-
-	if x < destiny_rope.x then
-		x = x + self.shoot_speed
-	end
-
-	if y > destiny_rope.y then
-		y = y - self.shoot_speed
-	end
-
-	if y < destiny_rope.y then
-		y = y + self.shoot_speed
-	end
-
-	self.rope = {
-		x = x,
-		y = y
-	}
-
-	love.graphics.line(Player.x, Player.y, self.rope.x,self.rope.y)
 end
 
 return Player
